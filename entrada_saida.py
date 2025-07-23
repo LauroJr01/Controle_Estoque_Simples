@@ -149,6 +149,14 @@ def abrir_saida_produto(janela_principal):
     cliente_selecionar.pack(padx=10, pady=10)
     cliente_selecionar_entrada = Combobox(janela_saida, values=nome_clientes)
     cliente_selecionar_entrada.pack(padx=10, pady=10)
+
+    # DEF Atualizar Clientes Combobox
+    def atualizar_clientes_combobox():
+        sessao = Session()
+        clientes = sessao.query(Cliente).all()
+        sessao.close()
+        nome_clientes = [cliente.nome for cliente in clientes]
+        cliente_selecionar_entrada['values'] = nome_clientes
     
     # DEF Saída Produto
     def saida_produto():
@@ -187,15 +195,25 @@ def abrir_saida_produto(janela_principal):
             if not cliente:
                 deseja_cadastrar = messagebox.askyesno("Cliente não encontrado.", f'O cliente "{cliente_nome}" não está cadastrado. \nDeseja cadastrar agora? ')
                 if deseja_cadastrar:
-                    from clientes import abrir_cadastro_cliente
                     abrir_cadastro_cliente(janela_saida)
+                    janela_saida.grab_set()
+
+                    def atualizar_uma_vez(event):
+                        atualizar_clientes_combobox()
+                        janela_saida.unbind("<FocusIn>")
+                        
+                    janela_saida.bind("<FocusIn>", atualizar_uma_vez)
+                    janela_saida.deiconify()
+                    janela_saida.lift()
+                    janela_saida.grab_set()
+                return
 
             if saida.quantidade < quantidade:
                 messagebox.showerror("Erro", "Produto não possui está quantidade no estoque.")
                 return
             else:
                 saida.quantidade -= quantidade 
-                nova_movimentacao = Movimentacao(produto_id=saida.id, tipo="Saída", quantidade=quantidade, data=datetime.now())
+                nova_movimentacao = Movimentacao(produto_id=saida.id, tipo="Saída", quantidade=quantidade, data=datetime.now(), cliente_id=cliente.id)
                 sessao.add(nova_movimentacao)
                 sessao.commit()
                 messagebox.showinfo("Sucesso", "Produto alterado com sucesso.")
